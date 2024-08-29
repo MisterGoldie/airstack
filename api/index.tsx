@@ -4,17 +4,22 @@ import fetch from 'node-fetch'
 
 const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql';
 const AIRSTACK_API_KEY = process.env.AIRSTACK_API_KEY;
-const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e';
-const STATIC_IMAGE_URL = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/QmVfEoPSGHFGByQoGxUUwPq2qzE4uKXT7CSKVaigPANmjZ';
+const BACKGROUND_IMAGE_URL = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/QmVfEoPSGHFGByQoGxUUwPq2qzE4uKXT7CSKVaigPANmjZ';
 
 if (!AIRSTACK_API_KEY) {
   console.error('AIRSTACK_API_KEY is not set. Please set this environment variable.');
   process.exit(1);
 }
 
-async function queryAirstack(fid: string) {
+interface FarcasterUserInfo {
+  profileName: string | null;
+  profileImage: string | null;
+  goldiesBalance: string;
+}
+
+async function getFarcasterUserInfo(identity: string): Promise<FarcasterUserInfo> {
   const query = `
-    query WalletChecker($identity: Identity!, $tokenAddress: Address!) {
+    query WalletChecker($identity: Identity!) {
       Wallet(input: {identity: $identity, blockchain: ethereum}) {
         socials(input: {filter: {dappName: {_eq: farcaster}}}) {
           dappName
@@ -22,31 +27,26 @@ async function queryAirstack(fid: string) {
           profileImage
         }
         tokenBalances(
-          input: {filter: {tokenAddress: {_eq: $tokenAddress}}}
+          input: {filter: {tokenAddress: {_eq: "0x3150E01c36ad3Af80bA16C1836eFCD967E96776e"}}}
         ) {
           tokenAddress
           amount
-          formattedAmount
         }
       }
     }
   `;
 
-  const variables = {
-    identity: fid,
-    tokenAddress: GOLDIES_TOKEN_ADDRESS
-  };
-
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': AIRSTACK_API_KEY || ''
-    };
-
     const response = await fetch(AIRSTACK_API_URL, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify({ query, variables })
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': AIRSTACK_API_KEY || ''
+      } as Record<string, string>,
+      body: JSON.stringify({
+        query,
+        variables: { identity }
+      })
     });
 
     if (!response.ok) {
@@ -55,9 +55,18 @@ async function queryAirstack(fid: string) {
 
     const data = await response.json();
     console.log('Airstack API response:', JSON.stringify(data, null, 2));
-    return data.data;
+
+    const wallet = data.data.Wallet;
+    const social = wallet.socials[0] || {};
+    const tokenBalance = wallet.tokenBalances[0] || { amount: '0' };
+
+    return {
+      profileName: social.profileName || null,
+      profileImage: social.profileImage || null,
+      goldiesBalance: tokenBalance.amount
+    };
   } catch (error) {
-    console.error('Error querying Airstack:', error);
+    console.error('Error fetching Farcaster user info:', error);
     throw error;
   }
 }
@@ -65,32 +74,48 @@ async function queryAirstack(fid: string) {
 export const app = new Frog({
   basePath: '/api',
   imageOptions: { width: 1200, height: 630 },
-  title: 'Farcaster $GOLDIES balance Checker'
+  title: 'Farcaster User Info'
 })
 
 app.frame('/', (c) => {
+  const { buttonValue, status } = c;
+
+  if (status === 'response') {
+    return c.res({
+      image: (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Checking Farcaster Info...</h1>
+          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Identity: {buttonValue}</p>
+        </div>
+      ),
+      intents: [
+        <Button action="/result" value={buttonValue}>Show Results</Button>
+      ]
+    });
+  }
+
   return c.res({
     image: (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
-        <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>$GOLDIES Balance Checker</h1>
-        <p style={{ fontSize: '36px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Click to check your $GOLDIES balance</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
+        <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Farcaster User Info</h1>
+        <p style={{ fontSize: '24px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Enter a Farcaster identity (e.g., ENS name)</p>
       </div>
     ),
     intents: [
-      <Button action="/check">Check Balance</Button>
+      <Button action="/">Check Farcaster Info</Button>
     ]
-  })
-})
+  });
+});
 
-app.frame('/check', async (c) => {
-  const { fid } = c.frameData || {};
+app.frame('/result', async (c) => {
+  const identity = c.buttonValue;
 
-  if (!fid) {
+  if (!identity) {
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your Farcaster ID. Please ensure you have a valid Farcaster profile.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
+          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>No identity provided</p>
         </div>
       ),
       intents: [
@@ -100,42 +125,32 @@ app.frame('/check', async (c) => {
   }
 
   try {
-    const data = await queryAirstack(fid.toString());
-    
-    if (!data || !data.Wallet || !data.Wallet.socials || data.Wallet.socials.length === 0) {
-      throw new Error('No Farcaster profile found');
-    }
-
-    const profile = data.Wallet.socials[0];
-    const balance = data.Wallet.tokenBalances && data.Wallet.tokenBalances[0] ? data.Wallet.tokenBalances[0].formattedAmount : '0';
+    const userInfo = await getFarcasterUserInfo(identity);
 
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
-          <p style={{ fontSize: '32px', textAlign: 'center' }}>FID: {fid}</p>
-          <p style={{ fontSize: '42px', textAlign: 'center' }}>{profile.profileName}</p>
-          <p style={{ fontSize: '42px', textAlign: 'center' }}>{balance} $GOLDIES</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Farcaster User Info</h1>
+          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Identity: {identity}</p>
+          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Profile Name: {userInfo.profileName || 'N/A'}</p>
+          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>$GOLDIES Balance: {userInfo.goldiesBalance}</p>
         </div>
       ),
       intents: [
-        <Button action="/">Back</Button>,
-        <Button action="/check">Refresh</Button>
+        <Button action="/">Check Another</Button>
       ]
     });
   } catch (error) {
-    console.error('Error in balance check:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to fetch balance or price.</p>
-          <p style={{ fontSize: '24px', textAlign: 'center' }}>Error details: {error instanceof Error ? error.message : 'Unknown error'}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
+          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Failed to fetch user info: {errorMessage}</p>
         </div>
       ),
       intents: [
-        <Button action="/">Back</Button>,
-        <Button action="/check">Retry</Button>
+        <Button action="/">Try Again</Button>
       ]
     });
   }
