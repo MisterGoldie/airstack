@@ -65,7 +65,7 @@ async function queryAirstack(fid: string) {
 export const app = new Frog({
   basePath: '/api',
   imageOptions: { width: 1200, height: 630 },
-  title: 'Farcaster $GOLDIES Balance Checker'
+  title: 'Farcaster $GOLDIES balance Checker'
 })
 
 app.frame('/', (c) => {
