@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 
 const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql';
 const AIRSTACK_API_KEY = process.env.AIRSTACK_API_KEY;
+const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e';
 const STATIC_IMAGE_URL = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/QmVfEoPSGHFGByQoGxUUwPq2qzE4uKXT7CSKVaigPANmjZ';
 
 if (!AIRSTACK_API_KEY) {
@@ -11,15 +12,9 @@ if (!AIRSTACK_API_KEY) {
   process.exit(1);
 }
 
-interface FarcasterUserInfo {
-  profileName: string | null;
-  profileImage: string | null;
-  goldiesBalance: string;
-}
-
-async function getFarcasterUserInfo(fid: string): Promise<FarcasterUserInfo> {
+async function queryAirstack(fid: string) {
   const query = `
-    query WalletChecker($identity: Identity!) {
+    query WalletChecker($identity: Identity!, $tokenAddress: Address!) {
       Wallet(input: {identity: $identity, blockchain: ethereum}) {
         socials(input: {filter: {dappName: {_eq: farcaster}}}) {
           dappName
@@ -27,7 +22,7 @@ async function getFarcasterUserInfo(fid: string): Promise<FarcasterUserInfo> {
           profileImage
         }
         tokenBalances(
-          input: {filter: {tokenAddress: {_eq: "0x3150E01c36ad3Af80bA16C1836eFCD967E96776e"}}}
+          input: {filter: {tokenAddress: {_eq: $tokenAddress}}}
         ) {
           tokenAddress
           amount
@@ -37,17 +32,21 @@ async function getFarcasterUserInfo(fid: string): Promise<FarcasterUserInfo> {
     }
   `;
 
+  const variables = {
+    identity: fid,
+    tokenAddress: GOLDIES_TOKEN_ADDRESS
+  };
+
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': AIRSTACK_API_KEY || ''
+    };
+
     const response = await fetch(AIRSTACK_API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AIRSTACK_API_KEY || ''
-      } as Record<string, string>,
-      body: JSON.stringify({
-        query,
-        variables: { identity: fid }
-      })
+      headers: headers,
+      body: JSON.stringify({ query, variables })
     });
 
     if (!response.ok) {
@@ -56,18 +55,9 @@ async function getFarcasterUserInfo(fid: string): Promise<FarcasterUserInfo> {
 
     const data = await response.json();
     console.log('Airstack API response:', JSON.stringify(data, null, 2));
-
-    const wallet = data.data.Wallet;
-    const social = wallet.socials[0] || {};
-    const tokenBalance = wallet.tokenBalances[0] || { formattedAmount: '0' };
-
-    return {
-      profileName: social.profileName || null,
-      profileImage: social.profileImage || null,
-      goldiesBalance: tokenBalance.formattedAmount
-    };
+    return data.data;
   } catch (error) {
-    console.error('Error fetching Farcaster user info:', error);
+    console.error('Error querying Airstack:', error);
     throw error;
   }
 }
@@ -75,51 +65,57 @@ async function getFarcasterUserInfo(fid: string): Promise<FarcasterUserInfo> {
 export const app = new Frog({
   basePath: '/api',
   imageOptions: { width: 1200, height: 630 },
-  title: 'Farcaster User Info'
+  title: 'Farcaster $GOLDIES Balance Checker'
 })
 
 app.frame('/', (c) => {
+  const imageUrl = new URL(STATIC_IMAGE_URL);
   return c.res({
-    image: STATIC_IMAGE_URL,
+    image: imageUrl.toString(),
     intents: [
-      <Button action="/check">Check Info</Button>
+      <Button action="/check">Check Balance</Button>
     ]
-  });
-});
+  })
+})
 
 app.frame('/check', async (c) => {
   const { fid } = c.frameData || {};
 
   if (!fid) {
     return c.res({
-      image: STATIC_IMAGE_URL,
+      image: new URL(STATIC_IMAGE_URL).toString(),
       intents: [
-        <Button action="/">No FID Found - Go Back</Button>
+        <Button action="/">Back</Button>
       ]
     });
   }
 
   try {
-    const userInfo = await getFarcasterUserInfo(fid.toString());
+    const data = await queryAirstack(fid.toString());
+    
+    if (!data || !data.Wallet || !data.Wallet.socials || data.Wallet.socials.length === 0) {
+      throw new Error('No Farcaster profile found');
+    }
 
-    const balanceText = userInfo.goldiesBalance !== '0' 
-      ? `Balance: ${userInfo.goldiesBalance} $GOLDIES` 
-      : 'No $GOLDIES balance';
+    const profile = data.Wallet.socials[0];
+    const balance = data.Wallet.tokenBalances && data.Wallet.tokenBalances[0] ? data.Wallet.tokenBalances[0].formattedAmount : '0';
+
+    console.log(`User ${profile.profileName} has a balance of ${balance} $GOLDIES`);
 
     return c.res({
-      image: STATIC_IMAGE_URL,
+      image: new URL(STATIC_IMAGE_URL).toString(),
       intents: [
         <Button action="/">Back</Button>,
-        <Button action="/check">{userInfo.profileName || 'User'}: {balanceText}</Button>
+        <Button action="/check">Refresh</Button>
       ]
     });
   } catch (error) {
     console.error('Error in balance check:', error);
     return c.res({
-      image: STATIC_IMAGE_URL,
+      image: new URL(STATIC_IMAGE_URL).toString(),
       intents: [
         <Button action="/">Back</Button>,
-        <Button action="/check">Error: {(error as Error).message}</Button>
+        <Button action="/check">Retry</Button>
       ]
     });
   }
