@@ -69,9 +69,13 @@ export const app = new Frog({
 })
 
 app.frame('/', (c) => {
-  const imageUrl = new URL(STATIC_IMAGE_URL);
   return c.res({
-    image: imageUrl.toString(),
+    image: (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
+        <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>$GOLDIES Balance Checker</h1>
+        <p style={{ fontSize: '36px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Click to check your $GOLDIES balance</p>
+      </div>
+    ),
     intents: [
       <Button action="/check">Check Balance</Button>
     ]
@@ -83,7 +87,12 @@ app.frame('/check', async (c) => {
 
   if (!fid) {
     return c.res({
-      image: new URL(STATIC_IMAGE_URL).toString(),
+      image: (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
+          <p style={{ fontSize: '36px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Unable to retrieve your Farcaster ID. Please ensure you have a valid Farcaster profile.</p>
+        </div>
+      ),
       intents: [
         <Button action="/">Back</Button>
       ]
@@ -100,10 +109,15 @@ app.frame('/check', async (c) => {
     const profile = data.Wallet.socials[0];
     const balance = data.Wallet.tokenBalances && data.Wallet.tokenBalances[0] ? data.Wallet.tokenBalances[0].formattedAmount : '0';
 
-    console.log(`User ${profile.profileName} has a balance of ${balance} $GOLDIES`);
-
     return c.res({
-      image: new URL(STATIC_IMAGE_URL).toString(),
+      image: (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Your $GOLDIES Balance</h1>
+          <p style={{ fontSize: '32px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>FID: {fid}</p>
+          <p style={{ fontSize: '42px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>{balance} $GOLDIES</p>
+          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Name: {profile.profileName || 'N/A'}</p>
+        </div>
+      ),
       intents: [
         <Button action="/">Back</Button>,
         <Button action="/check">Refresh</Button>
@@ -112,7 +126,12 @@ app.frame('/check', async (c) => {
   } catch (error) {
     console.error('Error in balance check:', error);
     return c.res({
-      image: new URL(STATIC_IMAGE_URL).toString(),
+      image: (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
+          <p style={{ fontSize: '36px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Unable to fetch balance. Please try again later.</p>
+        </div>
+      ),
       intents: [
         <Button action="/">Back</Button>,
         <Button action="/check">Retry</Button>
