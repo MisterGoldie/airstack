@@ -4,7 +4,6 @@ import fetch from 'node-fetch'
 
 const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql';
 const AIRSTACK_API_KEY = process.env.AIRSTACK_API_KEY;
-const BACKGROUND_IMAGE_URL = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/QmVfEoPSGHFGByQoGxUUwPq2qzE4uKXT7CSKVaigPANmjZ';
 
 if (!AIRSTACK_API_KEY) {
   console.error('AIRSTACK_API_KEY is not set. Please set this environment variable.');
@@ -37,12 +36,14 @@ async function getFarcasterUserInfo(identity: string): Promise<FarcasterUserInfo
   `;
 
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': AIRSTACK_API_KEY || ''
+    };
+
     const response = await fetch(AIRSTACK_API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AIRSTACK_API_KEY || ''
-      } as Record<string, string>,
+      headers: headers,
       body: JSON.stringify({
         query,
         variables: { identity }
@@ -79,13 +80,13 @@ export const app = new Frog({
 
 app.frame('/', (c) => {
   const { buttonValue, status } = c;
-
+  
   if (status === 'response') {
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Checking Farcaster Info...</h1>
-          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Identity: {buttonValue}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Checking Farcaster Info...</h1>
+          <p style={{ fontSize: '24px' }}>Identity: {buttonValue}</p>
         </div>
       ),
       intents: [
@@ -96,9 +97,9 @@ app.frame('/', (c) => {
 
   return c.res({
     image: (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
-        <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Farcaster User Info</h1>
-        <p style={{ fontSize: '24px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Enter a Farcaster identity (e.g., ENS name)</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
+        <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Farcaster User Info</h1>
+        <p style={{ fontSize: '24px', marginBottom: '20px' }}>Enter a Farcaster identity (e.g., ENS name)</p>
       </div>
     ),
     intents: [
@@ -113,9 +114,9 @@ app.frame('/result', async (c) => {
   if (!identity) {
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
-          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>No identity provided</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error</h1>
+          <p style={{ fontSize: '24px' }}>No identity provided</p>
         </div>
       ),
       intents: [
@@ -129,11 +130,11 @@ app.frame('/result', async (c) => {
 
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Farcaster User Info</h1>
-          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Identity: {identity}</p>
-          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Profile Name: {userInfo.profileName || 'N/A'}</p>
-          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>$GOLDIES Balance: {userInfo.goldiesBalance}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Farcaster User Info</h1>
+          <p style={{ fontSize: '24px' }}>Identity: {identity}</p>
+          <p style={{ fontSize: '24px' }}>Profile Name: {userInfo.profileName || 'N/A'}</p>
+          <p style={{ fontSize: '24px' }}>$GOLDIES Balance: {userInfo.goldiesBalance}</p>
         </div>
       ),
       intents: [
@@ -141,12 +142,11 @@ app.frame('/result', async (c) => {
       ]
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${BACKGROUND_IMAGE_URL})`, backgroundSize: 'cover', padding: '20px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
-          <p style={{ fontSize: '24px', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Failed to fetch user info: {errorMessage}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error</h1>
+          <p style={{ fontSize: '24px' }}>Failed to fetch user info: {error instanceof Error ? error.message : 'Unknown error'}</p>
         </div>
       ),
       intents: [
