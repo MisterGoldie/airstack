@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 
 const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql';
 const AIRSTACK_API_KEY = process.env.AIRSTACK_API_KEY;
+const STATIC_IMAGE_URL = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/QmVfEoPSGHFGByQoGxUUwPq2qzE4uKXT7CSKVaigPANmjZ';
 
 if (!AIRSTACK_API_KEY) {
   console.error('AIRSTACK_API_KEY is not set. Please set this environment variable.');
@@ -79,12 +80,7 @@ export const app = new Frog({
 
 app.frame('/', (c) => {
   return c.res({
-    image: (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
-        <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Farcaster User Info</h1>
-        <p style={{ fontSize: '24px', marginBottom: '20px' }}>Click to check your Farcaster info and $GOLDIES balance</p>
-      </div>
-    ),
+    image: STATIC_IMAGE_URL,
     intents: [
       <Button action="/check">Check Info</Button>
     ]
@@ -96,14 +92,9 @@ app.frame('/check', async (c) => {
 
   if (!fid) {
     return c.res({
-      image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error</h1>
-          <p style={{ fontSize: '24px' }}>Unable to retrieve your Farcaster ID. Please ensure you have a valid Farcaster profile.</p>
-        </div>
-      ),
+      image: STATIC_IMAGE_URL,
       intents: [
-        <Button action="/">Back</Button>
+        <Button action="/">No FID Found - Go Back</Button>
       ]
     });
   }
@@ -111,33 +102,24 @@ app.frame('/check', async (c) => {
   try {
     const userInfo = await getFarcasterUserInfo(fid.toString());
 
+    const balanceText = userInfo.goldiesBalance !== '0' 
+      ? `Balance: ${userInfo.goldiesBalance} $GOLDIES` 
+      : 'No $GOLDIES balance';
+
     return c.res({
-      image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Farcaster User Info</h1>
-          {userInfo.profileImage && <img src={userInfo.profileImage} alt="Profile" style={{ width: '100px', height: '100px', borderRadius: '50%', marginBottom: '20px' }} />}
-          <p style={{ fontSize: '24px' }}>Name: {userInfo.profileName || 'N/A'}</p>
-          <p style={{ fontSize: '24px' }}>FID: {fid}</p>
-          <p style={{ fontSize: '24px' }}>$GOLDIES Balance: {userInfo.goldiesBalance}</p>
-        </div>
-      ),
+      image: STATIC_IMAGE_URL,
       intents: [
         <Button action="/">Back</Button>,
-        <Button action="/check">Refresh</Button>
+        <Button action="/check">{userInfo.profileName || 'User'}: {balanceText}</Button>
       ]
     });
   } catch (error) {
     console.error('Error in balance check:', error);
     return c.res({
-      image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#f0f0f0', padding: '20px' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', color: 'red' }}>Error</h1>
-          <p style={{ fontSize: '24px', textAlign: 'center' }}>Unable to fetch balance. Please try again later.</p>
-        </div>
-      ),
+      image: STATIC_IMAGE_URL,
       intents: [
         <Button action="/">Back</Button>,
-        <Button action="/check">Retry</Button>
+        <Button action="/check">Error: {(error as Error).message}</Button>
       ]
     });
   }
