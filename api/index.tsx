@@ -88,9 +88,9 @@ app.frame('/check', async (c) => {
   if (!fid) {
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Unable to retrieve your Farcaster ID. Please ensure you have a valid Farcaster profile.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
+          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your Farcaster ID. Please ensure you have a valid Farcaster profile.</p>
         </div>
       ),
       intents: [
@@ -111,11 +111,11 @@ app.frame('/check', async (c) => {
 
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Your $GOLDIES Balance</h1>
-          <p style={{ fontSize: '32px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>FID: {fid}</p>
-          <p style={{ fontSize: '42px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>{balance} $GOLDIES</p>
-          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Name: {profile.profileName || 'N/A'}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
+          <p style={{ fontSize: '32px', textAlign: 'center' }}>FID: {fid}</p>
+          <p style={{ fontSize: '42px', textAlign: 'center' }}>{profile.profileName}</p>
+          <p style={{ fontSize: '42px', textAlign: 'center' }}>{balance} $GOLDIES</p>
         </div>
       ),
       intents: [
@@ -127,9 +127,10 @@ app.frame('/check', async (c) => {
     console.error('Error in balance check:', error);
     return c.res({
       image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundImage: `url(${STATIC_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Unable to fetch balance. Please try again later.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
+          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to fetch balance or price.</p>
+          <p style={{ fontSize: '24px', textAlign: 'center' }}>Error details: {error instanceof Error ? error.message : 'Unknown error'}</p>
         </div>
       ),
       intents: [
